@@ -1,0 +1,1 @@
+reproduce py-websockets/server3.py in dj channels
