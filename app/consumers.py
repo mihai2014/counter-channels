@@ -1,111 +1,114 @@
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
-
-import json
 import asyncio
-import logging
+import json
 
-logging.basicConfig()
-
-STATE = {"value": 0}
+STATE = 0
 USERS = 0
 
-
 class counter(AsyncWebsocketConsumer):
-
+    
     async def connect(self):
-        global USERS
+        global STATE, USERS
+
         USERS = USERS + 1
         print("users:", USERS)
 
-        #self.room_name = self.scope['url_route']['kwargs']['room_name']
-        #self.room_group_name = 'chat_%s' % self.room_name
-
-        self.room_name = "counter"
-        self.room_group_name = "counter-strike"
+        self.group_name = "counter-strike"
 
         # Join room group
         await self.channel_layer.group_add(
-            self.room_group_name,
+            self.group_name,
             self.channel_name
         )
-
+        
         await self.accept()
-
-        # Send message to group
+        
+        # Send message to group: update users
         await self.channel_layer.group_send(
-            self.room_group_name,
+            self.group_name,
             {
-                'type': 'update_users',
-                #'message': message
+                'type': 'group_message',
+                'key1': 'type',
+                'val1': 'users',
+                'key2': 'count',
+                'val2': USERS, 
+            },                     
+        )
+
+        #prevent timing out of sending data 
+        await asyncio.sleep(0.5)
+        
+        # Send message to group: update counter
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'group_message',
+                'key1': 'type',
+                'val1': 'state',
+                'key2': 'value',
+                'val2': STATE, 
             }
         )
 
-        # Send message to group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'update_counter',
-                #'message': message
-            }
-        )
+        print("ready")
 
     async def disconnect(self, close_code):
-        global USERS
+        global STATE, USERS
+
         USERS = USERS - 1
         print("users:", USERS)
 
-        # Send message to group
+        # Send message to group: update users
         await self.channel_layer.group_send(
-            self.room_group_name,
+            self.group_name,
             {
-                'type': 'update_users',
-                #'message': message
+                'type': 'group_message',
+                'key1': 'type',
+                'val1': 'users',
+                'key2': 'count',
+                'val2': USERS, 
             }
         )
 
         # Leave room group
         await self.channel_layer.group_discard(
-            self.room_group_name,
+            self.group_name,
             self.channel_name
         )
 
     # Receive message from WebSocket
     async def receive(self, text_data):
+        global STATE, USERS
 
         data = json.loads(text_data)
         if data["action"] == "minus":
-            STATE["value"] -= 1
-            #await notify_state()
+            STATE -= 1
+           
         elif data["action"] == "plus":
-            STATE["value"] += 1
-            #await notify_state()  
-
+            STATE += 1
+           
         print(data)
 
-        # Send message to group
+        # Send message to group: update counter
         await self.channel_layer.group_send(
-            self.room_group_name,
+            self.group_name,
             {
-                'type': 'update_counter',
-                #'message': message
+                'type': 'group_message',
+                'key1': 'type',
+                'val1': 'state',
+                'key2': 'value',
+                'val2': STATE, 
             }
         )
 
-
-
-    # Send message to group
-    async def update_counter(self, event):
-        global STATE
-        #message = event['message']
+  
+    async def group_message(self, event):
+        key1 = event['key1']
+        val1 = event['val1']
+        key2 = event['key2']
+        val2 = event['val2']
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
-            "type": "state", **STATE
-        }))
-
-    async def update_users(self, event):
-        global USERS
-
-        await self.send(text_data=json.dumps({
-            "type": "users", "count": USERS
-        }))    
+            key1 : val1, key2 : val2
+        }))        
