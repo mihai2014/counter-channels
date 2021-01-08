@@ -15,7 +15,7 @@ class counter(AsyncWebsocketConsumer):
 
         self.group_name = "counter-strike"
 
-        # Join room group
+        # Join group
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
@@ -69,7 +69,7 @@ class counter(AsyncWebsocketConsumer):
             }
         )
 
-        # Leave room group
+        # Leave group
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
