@@ -35,8 +35,8 @@ class counter(AsyncWebsocketConsumer):
             },                     
         )
 
-        #prevent timing out of sending data 
-        await asyncio.sleep(0.5)
+        #prevent timing out of sending data below
+        await asyncio.sleep(0.2)
         
         # Send message to group: update counter
         await self.channel_layer.group_send(
@@ -50,7 +50,6 @@ class counter(AsyncWebsocketConsumer):
             }
         )
 
-        print("ready")
 
     async def disconnect(self, close_code):
         global STATE, USERS
@@ -88,6 +87,7 @@ class counter(AsyncWebsocketConsumer):
             STATE += 1
            
         print(data)
+        print("counter:", STATE)
 
         # Send message to group: update counter
         await self.channel_layer.group_send(
